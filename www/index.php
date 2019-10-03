@@ -2,7 +2,10 @@
 
 require 'vendor/autoload.php';
 
+use inc\Formatter\JsonFormatter;
+use inc\Helper\ResponseFormatter;
 use inc\Model\SchoolBoard;
+use inc\Formatter\Formatter;
 use inc\Model\Student;
 use inc\Database\db;
 
@@ -30,8 +33,22 @@ try {
     $result = $db->query($sql, $studentId)->fetchAll();
     $db->close();
 
-    var_dump($result);
+    /**
+     * Serialize result of query to student object
+     * @var Student $student
+     */
+    $student = ResponseFormatter::getInstance()->serializeStudentObject($result, $mapper);
+
+    if (null === $student) {
+        $response = ['error' => 'Student does not exist'];
+    } else {
+        $schoolBoard = $student->getSchoolBoard();
+        $format = SchoolBoard::getSchoolBoard($schoolBoard)->getFormat();
+        $response = JsonFormatter::getInstance()->serializeStudentToArray($student, $schoolBoard);
+    }
+
 } catch (Exception $e) {
-    var_dump($e->getMessage());die;
+    $response = ['error' => $e->getMessage()];
 }
 
+echo Formatter::getFormatter($format)->formatResult($response);
